@@ -24,7 +24,7 @@ async def predict(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="File must be an image")
     try:
         image = Image.open(io.BytesIO(await file.read()))
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid or corrupted image file")
+    except (OSError, ValueError) as err:
+        raise HTTPException(status_code=400, detail="Invalid or corrupted image file") from err
     emotion = predict_emotion(image)
     return {"emotion": emotion}
