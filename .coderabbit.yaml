@@ -1,16 +1,6 @@
+version: 1
+
 reviews:
-  enable: true
-  auto_review: true
-  review_on_demand: true
-  summarize_pr: true
-
-rules:
-  complexity:
-    max_cyclomatic_complexity: 10
-  tests:
-    require_tests_for_new_code: true
-
-languages:
-  - javascript
-  - python
-  - typescript
+  auto_review:
+    enabled: true
+    auto_incremental_review: true

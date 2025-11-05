@@ -6,3 +6,4 @@ Pillow
 numpy
 python-multipart
 onnxruntime
+python-dotenv
