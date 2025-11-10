@@ -10,7 +10,7 @@ import torch
 class Model:
     #emotion table for Emotion-ferplus
     emotion_table = {'neutral':0, 'happiness':1, 'surprise':2, 'sadness':3, 'anger':4, 'disgust':5, 'fear':6, 'contempt':7}
-    prob_precentages={}
+    
     
     VIT_MODEL_NAME = "trpakov/vit-face-expression"
 
@@ -74,7 +74,7 @@ class Model:
                 logits = self.model(**inputs).logits
                 predicted = logits.argmax(-1).item()
             label = self.model.config.id2label[predicted]
-            return label, self.prob_precentages
+            return label, {}
 
         elif (self.model_option == 2):
             processed_face = self.preprocess(pil_image=pil_image)
@@ -87,10 +87,10 @@ class Model:
             probablities =  expanded / expanded.sum()
 
             prob = np.squeeze(probablities)
-
+            prob_precentages={}
             for emotion, idx in sorted(self.emotion_table.items(), key=lambda x: x[1]):
-                self.prob_precentages[emotion] = float(prob[idx]*100)
+                prob_precentages[emotion] = float(prob[idx]*100)
                 
             key = [k for k, v in self.emotion_table.items() if v == prob.argmax()][0]
             label = key
-            return label, self.prob_precentages
+            return label, prob_precentages
