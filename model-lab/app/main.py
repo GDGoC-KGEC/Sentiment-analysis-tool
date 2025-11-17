@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 load_dotenv()
 
+from utils.errorHandler import validate_email,check_email_exists,model_load_error,validate_image_file,UnhandledError
+
 app = FastAPI(title="Face Sentiment API")
 
 # path to the model
