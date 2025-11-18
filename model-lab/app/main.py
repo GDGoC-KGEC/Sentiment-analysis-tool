@@ -29,8 +29,11 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-# Load model once at startup (not per request)
-emotion_model = Model(model_path=MODEL_PATH, model_option=1)
+# ✅ Pre-load both model options at startup to avoid race conditions
+emotion_models = {
+    1: Model(model_path=MODEL_PATH, model_option=1),  # HuggingFace ViT
+    2: Model(model_path=MODEL_PATH, model_option=2)   # ONNX with CV2
+}
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...), model_option: int = Form(1)):
@@ -43,10 +46,13 @@ async def predict(file: UploadFile = File(...), model_option: int = Form(1)):
     except (OSError, ValueError) as err:
         raise HTTPException(status_code=400, detail="Invalid or corrupted image file") from err
 
+    # ✅ Validate model_option before using
+    if model_option not in emotion_models:
+        raise HTTPException(status_code=400, detail=f"Invalid model_option: {model_option}")
+
     try:
-        # Use already loaded model, but allow overriding option if needed
-        emotion_model.model_option = model_option
-        emotion, prob = emotion_model.predict(pil_image=image)
+        # ✅ Select the correct preloaded model without mutating shared state
+        emotion, prob = emotion_models[model_option].predict(pil_image=image)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Model inference failed: {e}") from e
 
