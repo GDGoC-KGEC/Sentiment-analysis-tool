@@ -11,15 +11,16 @@ load_dotenv()
 
 app = FastAPI(title="Face Sentiment API")
 
-# path to the model
+# Path to the model (fixed typo: onxx_models → onnx_models)
 BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_PATH = BASE_DIR / "models" / "onxx_models" / "emotion-ferplus-8.onnx"
+MODEL_PATH = BASE_DIR / "models" / "onnx_models" / "emotion-ferplus-8.onnx"
 if not MODEL_PATH.exists():
-    raise HTTPException(status_code=500, detail="Model file is not found")
+    raise FileNotFoundError(f"Model file not found: {MODEL_PATH}")
 
+# Validate CORS origins properly
 ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
-if not ALLOWED_ORIGINS:
-    raise HTTPException(status_code=500, detail="No allowed origins configured")
+if not ALLOWED_ORIGINS or ALLOWED_ORIGINS == [""]:
+    raise RuntimeError("No allowed origins configured in CORS_ALLOWED_ORIGINS")
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,6 +28,9 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+
+# Load model once at startup (not per request)
+emotion_model = Model(model_path=MODEL_PATH, model_option=1)
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...), model_option: int = Form(1)):
@@ -40,9 +44,10 @@ async def predict(file: UploadFile = File(...), model_option: int = Form(1)):
         raise HTTPException(status_code=400, detail="Invalid or corrupted image file") from err
 
     try:
-        emotion_model = Model(model_path=MODEL_PATH, model_option=model_option)
+        # Use already loaded model, but allow overriding option if needed
+        emotion_model.model_option = model_option
         emotion, prob = emotion_model.predict(pil_image=image)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Model inference failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Model inference failed: {e}") from e
 
     return {"emotion": emotion, "probabilities": prob}
